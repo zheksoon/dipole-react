@@ -1,0 +1,48 @@
+{
+  "name": "dipole-react",
+  "version": "1.0.0",
+  "description": "React bindings for Dipole observable state management library",
+  "source": "index.ts",
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "browser": "./dist/index.js",
+      "umd": "./dist/index.umd.js",
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "module": "dist/index.mjs",
+  "unpkg": "dist/index.umd.js",
+  "scripts": {
+    "build": "npx microbundle",
+    "dev": "npx microbundle watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/zheksoon/dipole-react.git"
+  },
+  "keywords": [
+    "dipole",
+    "observable",
+    "computed",
+    "reactive",
+    "frp",
+    "tfrp",
+    "state management"
+  ],
+  "author": "Eugene Daragan",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/zheksoon/dipole-react/issues"
+  },
+  "homepage": "https://github.com/zheksoon/dipole-react#readme",
+  "devDependencies": {
+    "@types/react": "^17.0.3",
+    "microbundle": "^0.13.0"
+  },
+  "peerDependencies": {
+    "dipole": ">=2.0.0",
+    "react": ">=16.8.0"
+  }
+}
