@@ -38,7 +38,7 @@
   },
   "homepage": "https://github.com/zheksoon/dipole-react#readme",
   "devDependencies": {
-    "@types/react": "^17.0.3",
+    "@types/react": ">=16.8.0",
     "microbundle": "^0.13.0"
   },
   "peerDependencies": {

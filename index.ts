@@ -8,7 +8,7 @@ function shouldConstruct(Component: Function) {
 
 const EMPTY_ARR = [] as const;
 
-function reactiveFunction<P>(component: React.FC<P>) {
+function observerFunction<P>(component: React.FC<P>) {
   const wrapped = function (props: P, context?: any) {
     const [, triggerUpdate] = useState<any>(null);
     
@@ -26,7 +26,7 @@ function reactiveFunction<P>(component: React.FC<P>) {
   return wrapped;
 }
 
-function reactiveClass<P, S>(Component: React.ComponentClass<P, S>) {
+function observerClass<P, S>(Component: React.ComponentClass<P, S>) {
   const wrapped: React.ComponentClass<P, S> = class extends Component {
     _reaction = reaction(super.render, this, () => this.forceUpdate());
 
@@ -45,7 +45,7 @@ function reactiveClass<P, S>(Component: React.ComponentClass<P, S>) {
   return wrapped;
 }
 
-export function reactive<T extends Function>(
+export function observer<T extends Function>(
   component: T
 ): T extends React.FC<infer P>
   ? React.FC<P>
@@ -53,8 +53,8 @@ export function reactive<T extends Function>(
   ? React.ComponentClass<P, S>
   : never {
   if (shouldConstruct(component)) {
-    return reactiveClass(component as any) as any;
+    return observerClass(component as any) as any;
   } else {
-    return reactiveFunction(component as any) as any;
+    return observerFunction(component as any) as any;
   }
 }
