@@ -6,6 +6,8 @@ The bindings require React from version 16.8.0, when hooks were introduced. Hook
 
 # Example
 
+Open in (codesandbox)[https://codesandbox.io/s/dipole-react-example-counter-o4w64]
+
 ```jsx
 import React from "react";
 import ReactDOM from "react-dom";
@@ -37,7 +39,7 @@ const Counter = observer(({ model }) => {
 
 const counterModel = new CounterModel();
 
-ReactDOM.render(<Counter model={model} />, document.getElementById("root"));
+ReactDOM.render(<Counter model={counterModel} />, document.getElementById("root"));
 ```
 
 # API
