@@ -11,15 +11,15 @@ const EMPTY_ARR = [] as const;
 function observerFunction<P>(component: React.FC<P>) {
   const wrapped = function (props: P, context?: any) {
     const [, triggerUpdate] = useState<any>(null);
-    
+
     const r = useMemo(() => {
       return reaction(component, null, () => triggerUpdate({}));
     }, EMPTY_ARR);
-    
+
     useEffect(() => {
-      return () => r.destroy()
+      return () => r.destroy();
     }, EMPTY_ARR);
-    
+
     return r.run(props, context);
   };
   wrapped.displayName = component.displayName || component.name;
@@ -57,4 +57,18 @@ export function observer<T extends Function>(
   } else {
     return observerFunction(component as any) as any;
   }
+}
+
+export function useObservable<T>(getter: () => T): T {
+  const [, triggerUpdate] = useState(null);
+
+  const r = useMemo(() => {
+    return reaction(getter, null, () => triggerUpdate({}));
+  }, EMPTY_ARR);
+
+  useEffect(() => {
+    return () => r.destroy();
+  }, EMPTY_ARR);
+
+  return r.run();
 }
