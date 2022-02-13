@@ -43,43 +43,122 @@ const Counter = observer(({ model }) => {
 
 const counterModel = new CounterModel();
 
-ReactDOM.render(<Counter model={counterModel} />, document.getElementById("root"));
+ReactDOM.render(
+  <Counter model={counterModel} />,
+  document.getElementById("root")
+);
 ```
 
-Example with `useObservable`:
+Example with `useObserver`:
 
 ```jsx
-const Counter = ({ model }) => {
-  const count = useObservable(() => model.count);
-  return (
-    <div>
-      Counter is: {count}
-      <button onClick={model.inc}>+</button>
-      <button onClick={model.dec}>-</button>
-      <button onClick={model.reset}>Reset</button>
-    </div>
-  );
-};
+import { useObserver } from "dipole-react";
+
+function Counter({ model }) {
+  return useObserver(() => {
+    return (
+      <div>
+        Counter is: {count}
+        <button onClick={model.inc}>+</button>
+        <button onClick={model.dec}>-</button>
+        <button onClick={model.reset}>Reset</button>
+      </div>
+    );
+  });
+}
 ```
 
 # API
 
 ## observer(component)
 
-Creates reactive version of React component that subscribes to observable/computed values accessed in render function/method and re-renders on their changes.
+Creates a reactive version of React component that subscribes to observable/computed values accessed in the component and re-renders on their changes.
 
-For functional components hooks-based implementation is used.
+From `dipole-react` version 2.0.0 the function works only with functional components. For class components see [observerClass](#observerClass)
 
-For class components, class-based implementation is used.
+**Usage**:
 
-Note: in order to see component names in React devtools, be sure to pass named component to `observer` or set `displayName` on the resulting reactive component.
+```tsx
+// With anonimous component
+const Component = observer((props) => <SomeJSX />);
 
-## useObservable(getter)
+// With named function component (better for React DevTools):
+const Component = observer(function Component(props) {
+  return <SomeJSX />;
+});
 
-Subscribes component to all observable/computed values accessed in `getter` function and return its execution result. Typical usage:
+// Or, just add `displayName` to it:
+Component.displayName = "Component";
 
-```js
-const [a, b, c] = useObservable(() => [model.a, model.b, model.c]);
+// For `React.forwardRef` components it must be applied to render function first:
+const RefForwardingComponent = React.forwardRef(
+  observer((props, ref) => {
+    return <SomeJSX ref={ref} />;
+  })
+);
+
+// The same goes for `React.memo` components:
+const MemoComponent = React.memo(
+  observer((props) => {
+    return <SomeJSX />;
+  })
+);
+```
+
+## useObserver(observerFn)
+
+Hook-style version of `observer`.
+Executes `observerFn`, tracks all accesses to observable/computed values inside of it and returns its result.
+
+Usual React hooks (`useCallback`, `useMemo`, etc) can be used both inside and outside of `observerFn`, but if you use ESLint, you might want to write them outside in order to make it happy.
+
+**Usage**:
+
+```tsx
+// Can be used to wrap whole render function
+function Component({ model }) {
+  return useObserver(() => {
+    return <SomeJSX value={model.value} />;
+  });
+}
+
+// Or wrap only necessarily observable access
+function Component({ model }) {
+  const value = useObserver(() => model.value);
+
+  return <SomeJSX value={value} />;
+}
+
+// Can be used inside `React.memo` and `React.forwardRef` components as well
+const MemoComponent = React.memo((props) => {
+  return useObserver(() => {
+    return <SomeJSX />;
+  });
+});
+
+const RefForwardingComponent = React.forwardRef((props, ref) => {
+  return useObserver(() => {
+    return <SomeJSX ref={ref} />;
+  });
+});
+```
+
+## observerClass(classComponent)
+
+Creates a reactive version of `classComponent`. The argument must be of `React.Component` or `React.PureComponent` type.
+
+**Usage**:
+
+```tsx
+const Component = obseverClass(
+  class Component extends React.Component {
+    render() {
+      const { model } = this.props;
+
+      return <SomeJSX value={model.value} />;
+    }
+  }
+);
 ```
 
 # License
