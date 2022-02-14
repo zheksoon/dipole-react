@@ -1,22 +1,16 @@
 {
   "name": "dipole-react",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "React bindings for Dipole observable state management library",
-  "source": "index.ts",
-  "main": "dist/index.js",
-  "exports": {
-    ".": {
-      "browser": "./dist/index.js",
-      "umd": "./dist/index.umd.js",
-      "require": "./dist/index.js",
-      "import": "./dist/index.mjs"
-    }
-  },
-  "module": "dist/index.mjs",
-  "unpkg": "dist/index.umd.js",
+  "source": "./index.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.modern.js",
+  "exports": "./dist/index.modern.js",
+  "unpkg": "./dist/index.umd.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "npx microbundle",
-    "dev": "npx microbundle watch"
+    "build": "npx microbundle --format modern,cjs,umd",
+    "dev": "npx microbundle watch --format modern,cjs,umd"
   },
   "repository": {
     "type": "git",
