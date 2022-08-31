@@ -1,6 +1,6 @@
 {
   "name": "dipole-react",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "React bindings for Dipole observable state management library",
   "source": "./index.ts",
   "main": "./dist/index.js",
@@ -36,7 +36,7 @@
     "microbundle": "^0.13.0"
   },
   "peerDependencies": {
-    "dipole": ">=2.3.0",
+    "dipole": "^2.6.1",
     "react": ">=16.8.0"
   }
 }

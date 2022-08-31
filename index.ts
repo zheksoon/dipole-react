@@ -1,37 +1,113 @@
-import { useState, useRef, useLayoutEffect, ComponentClass } from "react";
-import { reaction } from "dipole";
+import { useState, useRef, useMemo, useEffect, ComponentClass } from "react";
+import { reaction, DebounceQueue, IReaction } from "dipole";
+
+type AnyReaction = IReaction<any, any, any>;
 
 const EMPTY_ARR = [];
-const reactionOptions = { autocommitSubscriptions: false };
+
+const ABANDONED_RENDERER_CHECK_INTERVAL = 10_000;
+
+let isSSR = false;
+
+interface IOptions {
+  isSSR?: boolean;
+}
+
+export function configure(options: IOptions) {
+  if (options.isSSR !== undefined) {
+    isSSR = !!options.isSSR;
+  }
+}
+
+class DebounceQueueCheckStrategy {
+  static isAvailable(): boolean {
+    return true;
+  }
+
+  private _destroyCallback = (reactions: Set<AnyReaction>) => {
+    reactions.forEach((reaction) => {
+      reaction.destroy();
+    });
+  };
+
+  private _destroyQueue = new DebounceQueue(
+    this._destroyCallback,
+    ABANDONED_RENDERER_CHECK_INTERVAL
+  );
+
+  add(_referencedObject: any, reaction: AnyReaction) {
+    this._destroyQueue.add(reaction);
+  }
+
+  remove(_referencedObject: any, reaction: AnyReaction) {
+    this._destroyQueue.remove(reaction);
+  }
+}
+
+class FinalizationRegistryCheckStrategy {
+  static isAvailable(): boolean {
+    return typeof FinalizationRegistry !== "undefined";
+  }
+
+  private _registry = new FinalizationRegistry((reaction: AnyReaction) => {
+    reaction.destroy();
+  });
+
+  add(referencedObject: any, reaction: AnyReaction) {
+    this._registry.register(referencedObject, reaction, referencedObject);
+  }
+
+  remove(referencedObject: any, _reaction: AnyReaction) {
+    this._registry.unregister(referencedObject);
+  }
+}
+
+const abandonedRendererCheckStrategy =
+  FinalizationRegistryCheckStrategy.isAvailable()
+    ? new FinalizationRegistryCheckStrategy()
+    : new DebounceQueueCheckStrategy();
+
+class RetainedObject {
+  static factory() {
+    return new RetainedObject();
+  }
+}
 
 export function useObserver<T>(fn: () => T): T {
+  if (isSSR) {
+    return fn();
+  }
+
   const [, triggerUpdate] = useState<any>(null);
+  const [retainedObject] = useState(RetainedObject.factory);
 
   const fnRef = useRef(fn);
   fnRef.current = fn;
 
-  // don't use useMemo as it might be disposed
-  const reactionRef = useRef(null);
-  if (reactionRef.current === null) {
+  const r = useMemo(() => {
     const forceUpdate = () => triggerUpdate({});
     const reactionFn = () => fnRef.current();
-    reactionRef.current = reaction(
-      reactionFn,
-      null,
-      forceUpdate,
-      reactionOptions
-    );
-  }
-
-  // use layout effect to get subscriptions commited as soon as possible after render
-  useLayoutEffect(() => {
-    const r = reactionRef.current;
-    r.commitSubscriptions();
-    r.setOptions({ autocommitSubscriptions: true });
-    return () => r.destroy();
+    return reaction(reactionFn, null, forceUpdate);
   }, EMPTY_ARR);
 
-  return reactionRef.current.run();
+  const isEffectCleanupExecuted = useRef(false);
+
+  abandonedRendererCheckStrategy.add(retainedObject, r);
+
+  useEffect(() => {
+    abandonedRendererCheckStrategy.remove(retainedObject, r);
+
+    if (isEffectCleanupExecuted.current) {
+      r.commitSubscriptions();
+    }
+
+    return () => {
+      r.unsubscribeFromSubscriptions();
+      isEffectCleanupExecuted.current = true;
+    };
+  }, EMPTY_ARR);
+
+  return r.run();
 }
 
 // see https://github.com/mobxjs/mobx-react-lite/blob/master/src/observer.ts
@@ -81,24 +157,24 @@ export function observerClass<T extends ComponentClass<any, any>>(
   }
 
   // @ts-ignore
-  const wrapped = class extends Component {
-    _reaction = reaction(
-      super.render,
-      this,
-      () => this.forceUpdate(),
-      reactionOptions
-    );
+  const wrapped: T = class extends Component {
+    _retainedObject = new RetainedObject();
+
+    _reaction = reaction(super.render, this, () => this.forceUpdate());
 
     componentWillUnmount() {
       if (super.componentWillUnmount) {
         super.componentWillUnmount();
       }
+
       this._reaction.destroy();
     }
 
     componentDidMount() {
-      this._reaction.commitSubscriptions();
-      this._reaction.setOptions({ autocommitSubscriptions: true });
+      abandonedRendererCheckStrategy.remove(
+        this._retainedObject,
+        this._reaction
+      );
 
       if (super.componentDidMount) {
         super.componentDidMount();
@@ -106,6 +182,12 @@ export function observerClass<T extends ComponentClass<any, any>>(
     }
 
     render() {
+      if (isSSR) {
+        return super.render();
+      }
+
+      abandonedRendererCheckStrategy.add(this._retainedObject, this._reaction);
+
       return this._reaction.run();
     }
   };
